@@ -2,7 +2,7 @@ turtles-own
 [
   infected?           ;; if true, the turtle is infectious
   resistant?          ;; if true, the turtle can't be infected
-  virus-check-timer   ;; number of ticks since this turtle's last virus-check (TIEMPO DE VIDA DEL VIRUS)
+  virus-check-timer   ;; number of ticks since this turtle's last virus-check
 ]
 
 to setup
@@ -37,11 +37,7 @@ to setup-spatially-clustered-network
     ;; elige un nodo 1 al azar
     ask one-of turtles
     [
-      ;; elige el nodo 2 mas cercano a 1
-      let choice (min-one-of (other turtles with [not link-neighbor? myself])
-                   [distance myself])
-      ;; conecta 1 con 2
-      if choice != nobody [ create-link-with choice ]
+      conectarse
     ]
   ]
   ; make the network look a little prettier
@@ -57,11 +53,12 @@ to go
   ask turtles                                          ;; para cada tortuga ...
   [
      set virus-check-timer virus-check-timer + 1       ;; ... incrementa su checador de virus
-     if virus-check-timer >= virus-check-frequency     ;; ... reinicia su checador de virus cuando se cumplio la frecuencia
+     if virus-check-timer >= virus-check-frequency
        [ set virus-check-timer 0 ]
   ]
-  spread-virus                                         ;; propaga el virus (INFECTA)
+  spread-virus
   do-virus-checks
+  moverse
   tick
 end
 
@@ -84,26 +81,46 @@ to become-resistant  ;; turtle procedure
   ask my-links [ set color gray - 2 ]
 end
 
-;; infecta
 to spread-virus
-  ask turtles with [infected?]                           ;; para todas las tortugas infectadas ...
-    [ ask link-neighbors with [not resistant?]           ;; ... encuentra sus vecinos suceptibles (no resistentes)
+  ask turtles with [infected?]
+    [ ask link-neighbors with [not resistant?]
         [ if random-float 100 < virus-spread-chance
-            [ become-infected ] ] ]                      ;; de acuerdo a la probabilidad de infeccción los infecta
+            [ become-infected ] ] ]
 end
 
 to do-virus-checks
-  ask turtles with [infected? and virus-check-timer = 0] ;; para todas las tortugas infectadas que cubrieron su tiempo minimo de virus ...
+  ask turtles with [infected? and virus-check-timer = 0]
   [
-    if random 100 < recovery-chance                      ;; de acuerdo a la probabilidad de recuperacion, se recupera
+    if random 100 < recovery-chance
     [
-      ifelse random 100 < gain-resistance-chance
-        [ become-resistant ]
-        [ become-susceptible ]
+      become-resistant
     ]
   ]
 end
 
+to moverse
+  let tortugas-moviles (movilidad / 100) * number-of-nodes                      ;;elige la cantidad de tortugas a moverse
+  ask n-of tortugas-moviles turtles                                             ;; dile a las tortugas elegidas
+  [
+    ask my-links                                                                ;; que les digan a sus enlaces
+    [
+      die                                                                       ;; que mueran
+    ]
+    fd random 3 + random -3                                                     ;; que avancen un numero de pasos entre 3 y -3
+    repeat average-node-degree                                                  ;; que creen una conexion
+    [
+      conectarse
+    ]
+  ]
+end
+
+to conectarse
+  ;; elige el nodo mas cercano a cada tortuga
+      let choice (min-one-of (other turtles with [not link-neighbor? myself])
+                   [distance myself])
+      ;; conecta el nodo mas cercano a la tortuga
+      if choice != nobody [ create-link-with choice ]
+end
 
 ; Copyright 2008 Uri Wilensky.
 ; See Info tab for full copyright and license.
@@ -134,21 +151,6 @@ GRAPHICS-WINDOW
 1
 ticks
 30.0
-
-SLIDER
-25
-280
-230
-313
-gain-resistance-chance
-gain-resistance-chance
-0.0
-100
-5.0
-1
-1
-%
-HORIZONTAL
 
 SLIDER
 25
@@ -243,7 +245,7 @@ number-of-nodes
 number-of-nodes
 10
 300
-150.0
+110.0
 5
 1
 NIL
@@ -292,6 +294,21 @@ number-of-nodes - 1
 1
 1
 NIL
+HORIZONTAL
+
+SLIDER
+24
+280
+230
+313
+movilidad
+movilidad
+0
+100
+51.0
+0.5
+1
+%
 HORIZONTAL
 
 @#$#@#$#@
